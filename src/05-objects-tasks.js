@@ -53,8 +53,8 @@ function getJSON(obj) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  return new proto.constructor(...Object.values(JSON.parse(json)));
 }
 
 
@@ -113,32 +113,34 @@ function fromJSON(/* proto, json */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
-  },
+  res: '',
+  order: [],
+  errorText1: 'Element, id and pseudo-element should not occur more then one time inside the selector',
+  errorText2: 'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  element(value) { return this.bodySolve(0, value); },
+  id(value) { return this.bodySolve(1, `#${value}`); },
+  class(value) { return this.bodySolve(2, `.${value}`); },
+  attr(value) { return this.bodySolve(3, `[${value}]`); },
+  pseudoClass(value) { return this.bodySolve(4, `:${value}`); },
+  pseudoElement(value) { return this.bodySolve(5, `::${value}`); },
+  combine(selector1, combinator, selector2) { return Object.assign(Object.create(this), { res: `${selector1.res} ${combinator} ${selector2.res}` }); },
+  stringify() { return this.res; },
+  checkOrder(order) {
+    if (!(Array(order.length).fill().map((_, i) => order[i]).sort((a, b) => a - b)
+      .every((e, i) => e === order[i]))) throw new Error(this.errorText2);
   },
-
-  class(/* value */) {
-    throw new Error('Not implemented');
+  checkValid(order) {
+    if (order.filter((e) => (e < 2) || (e > 4))
+      .findIndex((e, i, a) => a.indexOf(e) !== i) >= 0) throw new Error(this.errorText1);
   },
-
-  attr(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  bodySolve(num, value) {
+    const obj = Object.create(this);
+    obj.order = this.order.concat(num);
+    this.checkOrder(obj.order);
+    this.checkValid(obj.order);
+    obj.res = this.res + value;
+    return obj;
   },
 };
 
